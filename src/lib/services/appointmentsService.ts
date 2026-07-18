@@ -3,7 +3,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { AppointmentDoc } from "@/lib/types";
-import { occupiedCells, addMinutesToTime, normalizePhone } from "@/lib/utils";
+import { occupiedCells, addMinutesToTime, normalizePhone, formatDateHe } from "@/lib/utils";
+import { notifyNewAppointment, notifyCancelledAppointment, notifyRescheduledAppointment } from "@/lib/services/telegramService";
 
 const COL = "appointments";
 const LOCK_COL = "slotLocks";
@@ -79,6 +80,15 @@ export async function createAppointment(input: CreateInput): Promise<Appointment
     tx.set(doc(db, COL, apptId), appointment);
   });
 
+  // Notify admin on Telegram
+  await notifyNewAppointment(
+    appointment.userPhone,
+    appointment.userName,
+    appointment.serviceName,
+    formatDateHe(appointment.date),
+    appointment.startTime
+  );
+
   return appointment;
 }
 
@@ -88,19 +98,33 @@ export async function cancelAppointment(
   granularity: number,
   bufferMinutes = 0
 ): Promise<void> {
+  // Read appointment first so we can notify (queries outside transaction)
+  const apptRef = doc(db, COL, apptId);
+  const snap = await getDoc(apptRef);
+  const appt = snap.exists() ? (snap.data() as AppointmentDoc) : null;
+
   await runTransaction(db, async (tx) => {
-    const apptRef = doc(db, COL, apptId);
-    const snap = await tx.get(apptRef);
-    if (!snap.exists()) return;
-    const appt = snap.data() as AppointmentDoc;
+    const txSnap = await tx.get(apptRef);
+    if (!txSnap.exists()) return;
+    const txAppt = txSnap.data() as AppointmentDoc;
     const cells = occupiedCells(
-      appt.startTime,
-      appt.durationMinutes + bufferMinutes,
+      txAppt.startTime,
+      txAppt.durationMinutes + bufferMinutes,
       granularity
     );
-    cells.forEach((c) => tx.delete(doc(db, LOCK_COL, `${appt.date}_${c}`)));
+    cells.forEach((c) => tx.delete(doc(db, LOCK_COL, `${txAppt.date}_${c}`)));
     tx.update(apptRef, { status: "cancelled" });
   });
+
+  // Notify admin on Telegram
+  if (appt) {
+    await notifyCancelledAppointment(
+      appt.userName,
+      appt.serviceName,
+      formatDateHe(appt.date),
+      appt.startTime
+    );
+  }
 }
 
 export async function rescheduleAppointment(
@@ -110,8 +134,12 @@ export async function rescheduleAppointment(
   granularity: number,
   bufferMinutes = 0
 ): Promise<void> {
+  // Read appointment first for notification
+  const apptRef = doc(db, COL, apptId);
+  const preTxSnap = await getDoc(apptRef);
+  const oldAppt = preTxSnap.exists() ? (preTxSnap.data() as AppointmentDoc) : null;
+
   await runTransaction(db, async (tx) => {
-    const apptRef = doc(db, COL, apptId);
     const snap = await tx.get(apptRef);
     if (!snap.exists()) throw new Error("התור לא נמצא");
     const appt = snap.data() as AppointmentDoc;
@@ -138,6 +166,18 @@ export async function rescheduleAppointment(
       endTime: addMinutesToTime(newStart, appt.durationMinutes),
     });
   });
+
+  // Notify admin on Telegram
+  if (oldAppt) {
+    await notifyRescheduledAppointment(
+      oldAppt.userName,
+      oldAppt.serviceName,
+      formatDateHe(oldAppt.date),
+      oldAppt.startTime,
+      formatDateHe(newDate),
+      newStart
+    );
+  }
 }
 
 export async function getAppointment(id: string): Promise<AppointmentDoc | null> {

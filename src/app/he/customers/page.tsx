@@ -92,6 +92,10 @@ export default function CustomersPage() {
     // saved on next "save membership"
   }
 
+  function typeLabel(t?: MembershipType): string {
+    return t === "subscription" ? "מנוי" : t === "punchCard" ? "כרטיסייה" : "ללא מנוי";
+  }
+
   // Build a ready-to-send WhatsApp reminder for a specific appointment.
   function reminderLink(a: AppointmentDoc): string {
     const digits = (selected?.phone ?? "").replace(/\D/g, "");
@@ -194,10 +198,11 @@ export default function CustomersPage() {
                     {membership.label}{membership.detail ? ` · ${membership.detail}` : ""}
                   </span>
                 </div>
+                <p className="mt-1 text-xs text-bronze-400">מצב שמור כעת (התווית למעלה). בחרו סוג ולחצו «שמירת מנוי».</p>
 
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {([
-                    { v: "oneTime", t: "חד-פעמי" },
+                    { v: "oneTime", t: "ללא מנוי" },
                     { v: "subscription", t: "מנוי" },
                     { v: "punchCard", t: "כרטיסייה" },
                   ] as { v: MembershipType; t: string }[]).map((opt) => (
@@ -242,12 +247,18 @@ export default function CustomersPage() {
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <button onClick={saveMembership} disabled={savingMembership}
                     className="rounded-full bg-bronze-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">
                     {savingMembership ? "שומר…" : "שמירת מנוי"}
                   </button>
-                  {membershipSaved && <span className="text-sm font-medium text-green-600">✓ נשמר</span>}
+                  {membershipSaved ? (
+                    <span className="text-sm font-medium text-green-600">✓ נשמר: {typeLabel(selected.membershipType)}</span>
+                  ) : (
+                    mType !== (selected.membershipType ?? "oneTime") && (
+                      <span className="text-sm font-medium text-amber-deep">שינוי לא שמור — לחצו «שמירת מנוי»</span>
+                    )
+                  )}
                 </div>
               </div>
 

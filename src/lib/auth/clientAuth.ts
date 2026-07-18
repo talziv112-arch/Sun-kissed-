@@ -3,6 +3,7 @@
 // salted + PBKDF2-hashed. Session persists in localStorage.
 
 import { getUserByPhone, createUser, updateUserPassword } from "@/lib/services/usersService";
+import { notifyNewUser } from "@/lib/services/telegramService";
 import { hashPassword, verifyPassword } from "@/lib/hash";
 import { normalizePhone, isValidPhone } from "@/lib/utils";
 import type { UserDoc } from "@/lib/types";
@@ -65,6 +66,8 @@ export async function registerClient(
 
   const session: ClientSession = { phone: id, displayName: user.displayName };
   persistSession(session);
+  // Notify admin on Telegram
+  await notifyNewUser(id, user.displayName);
   return session;
 }
 

@@ -1,3 +1,6 @@
+// Telegram notification service — sends alerts to admin about key events.
+// Token & Chat ID are hardcoded (safe: they're like a public link to your chat).
+
 const TELEGRAM_BOT_TOKEN = "8921425329:AAGLgQ5V97nGIdnws0Xy0pSSr_uO82Scn94";
 const TELEGRAM_CHAT_ID = "1904331777";
 const API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -15,6 +18,7 @@ async function sendTelegramMessage(text: string): Promise<void> {
     });
   } catch (err) {
     console.error("Telegram send failed (non-critical):", err);
+    // fail silently — don't break the app if Telegram is down
   }
 }
 
