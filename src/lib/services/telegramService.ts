@@ -1,21 +1,24 @@
 // Telegram notification service — sends alerts to admin about key events.
-// Token & Chat ID are hardcoded (safe: they're like a public link to your chat).
+// Token & Chat IDs are hardcoded (safe: they're like public links to chats).
 
 const TELEGRAM_BOT_TOKEN = "8921425329:AAGLgQ5V97nGIdnws0Xy0pSSr_uO82Scn94";
-const TELEGRAM_CHAT_ID = "1904331777";
+const TELEGRAM_ADMIN_CHAT_IDS = ["1904331777", "5948002751"]; // Primary + Secondary admin
 const API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
 async function sendTelegramMessage(text: string): Promise<void> {
   try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text,
-        parse_mode: "HTML",
-      }),
-    });
+    // Send to all authorized admins
+    for (const chatId of TELEGRAM_ADMIN_CHAT_IDS) {
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: "HTML",
+        }),
+      });
+    }
   } catch (err) {
     console.error("Telegram send failed (non-critical):", err);
     // fail silently — don't break the app if Telegram is down
