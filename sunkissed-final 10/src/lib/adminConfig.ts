@@ -14,7 +14,7 @@ export const ADMIN_CREDENTIALS: AdminCredentials[] = [
   },
   {
     username: "0542196443",
-    password: "4321",
+    password: "Liza2002",
     name: "ליזה",
   },
 ];
