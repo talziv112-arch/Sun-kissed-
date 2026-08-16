@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// ============================================================================
+// Sunkissed — Firestore Security Rules
+// ----------------------------------------------------------------------------
+// IMPORTANT SECURITY NOTE
+// This app authenticates clients with a phone + password stored in Firestore
+// (no Firebase Auth session), and the admin uses hardcoded credentials in the
+// client bundle. Because there is no server-side auth context, these rules are
+// necessarily permissive so the client can read/write the collections it needs.
+//
+// For real production hardening you should:
+//   1. Move authentication to Firebase Auth (custom tokens via a Cloud Function
+//      that verifies phone+password), then gate reads/writes on request.auth.
+//   2. Enable Firebase App Check to block traffic that doesn't come from your app.
+//   3. Never expose password hashes for arbitrary reads (do verification in a
+//      Cloud Function instead of reading the user doc on the client).
+// Deploy these rules with:  firebase deploy --only firestore:rules
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Limit writes to the documented shape/size to reduce abuse surface.
+    function notTooBig() {
+      return request.resource.data.size() < 50;
+    }
+
+    match /users/{phone} {
+      allow read: if true;
+      allow create, update: if notTooBig();
+      allow delete: if false;
+    }
+
+    match /services/{id} {
+      allow read: if true;
+      allow write: if notTooBig();
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if notTooBig();
+    }
+
+    match /appointments/{id} {
+      allow read: if true;
+      allow write: if notTooBig();
+    }
+
+    match /slotLocks/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /blockedDates/{id} {
+      allow read: if true;
+      allow write: if notTooBig();
+    }
+
+    match /waitingList/{id} {
+      allow read: if true;
+      allow write: if notTooBig();
+    }
+
+    // Deny everything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
