@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sand-50: #FBF6EF;
+  --bronze-800: #3A2A1A;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: var(--sand-50);
+  color: var(--bronze-800);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* RTL-safe focus ring */
+*:focus-visible {
+  outline: 2px solid #C9732B;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Custom scrollbar for admin tables */
+.thin-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #DCBF95; border-radius: 9999px; }
+
+/* The signature "sunlit" glow used behind the hero CTA */
+.sun-glow {
+  background: radial-gradient(60% 60% at 50% 40%, rgba(224,145,58,0.30) 0%, rgba(224,145,58,0.10) 45%, transparent 75%);
+}
